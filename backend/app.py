@@ -4,6 +4,8 @@ from PIL import Image
 from transformers import AutoProcessor, AutoModelForCausalLM
 import torch
 import io
+from transformers.utils import init_empty_weights
+
 
 app = FastAPI()
 
