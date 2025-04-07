@@ -1,5 +1,5 @@
 fastapi
 uvicorn
 pillow
-transformers
+transformers==4.37.0
 torch
