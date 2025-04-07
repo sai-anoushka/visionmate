@@ -1,0 +1,8 @@
+# Ignore Python venv
+backend/venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Ignore node_modules
+frontend/node_modules/
