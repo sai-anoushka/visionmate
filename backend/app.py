@@ -20,7 +20,7 @@ app.add_middleware(
 
 # Load GIT-base model and processor
 print("🚀 Loading microsoft/git-base-coco model...")
-processor = GitProcessor.from_pretrained("microsoft/git-base-coco")
+processor = GitProcessor.from_pretrained("microsoft/git-base")
 model = AutoModelForCausalLM.from_pretrained("microsoft/git-base-coco", torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32)
 print("✅ Model loaded!")
 
