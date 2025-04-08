@@ -1,9 +1,10 @@
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
-from transformers import BlipProcessor, AutoModelForCausalLM
+from transformers import AutoProcessor, AutoModelForCausalLM
 import torch
 import io
+from transformers.utils import cached_file
 
 
 
@@ -18,9 +19,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+try:
+    cached_file("microsoft/git-base-coco", "preprocessor_config.json", force_download=True)
+except Exception as e:
+    print(f"⚠️ Could not download preprocessor_config.json: {e}")
+
+
 # Load GIT-base model and processor
 print("🚀 Loading microsoft/git-base-coco model...")
-processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
+processor = AutoProcessor.from_pretrained("microsoft/git-base-coco")
 model = AutoModelForCausalLM.from_pretrained("microsoft/git-base-coco", torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32)
 print("✅ Model loaded!")
 

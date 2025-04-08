@@ -1,8 +1,6 @@
+transformers
+torch
 fastapi
 uvicorn
 pillow
-transformers
-torch
 python-multipart
-sentencepiece
-accelerate
