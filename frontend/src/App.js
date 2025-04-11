@@ -11,7 +11,7 @@ function App() {
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
 
-  const BACKEND_URL = "https://anoushhka-visionmate-backend.hf.space/caption/";
+  const BACKEND_URL = "http://localhost:8000/caption/";
 
   useEffect(() => {
     const mobileCheck = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
