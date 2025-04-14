@@ -240,6 +240,22 @@ const styles = {
     fontSize: "1rem",
     color: "#666",
   },
+  fakeButton: {
+    display: "block",
+    width: "100%",
+    margin: "10px 0",
+    padding: "12px 15px",
+    fontSize: "1rem",
+    fontWeight: "bold",
+    backgroundColor: "#007bff",
+    color: "white",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+    touchAction: "manipulation",
+    textAlign: "center"
+  },
+  
 };
 
 export default App;
