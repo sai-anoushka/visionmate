@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 
 function App() {
@@ -11,7 +10,8 @@ function App() {
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
 
-  const BACKEND_URL = "http://localhost:8000/caption/";
+  const BACKEND_URL = "https://visionmate-backend.onrender.com/caption/";
+
 
   useEffect(() => {
     const mobileCheck = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -114,8 +114,17 @@ function App() {
       <div style={styles.card}>
         {isMobile ? (
           <>
-            <input type="file" accept="image/*" capture="environment" onChange={handleMobileUpload} style={styles.button} />
-          </>
+            <label style={{ ...styles.fakeButton }}>
+      📷 Open Camera
+      <input
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleMobileUpload}
+        style={{ display: "none" }}
+      />
+    </label>
+  </>
         ) : (
           <>
             {cameraActive && (
