@@ -16,6 +16,8 @@ app.add_middleware(
 
 API_URL = "https://api-inference.huggingface.co/models/microsoft/git-base-coco"
 HF_TOKEN = os.getenv("HF_TOKEN")
+print("✅ Hugging Face Token:", HF_TOKEN[:10] + "..." if HF_TOKEN else "❌ Not set")
+
 
 HEADERS = {
     "Authorization": f"Bearer {HF_TOKEN}",

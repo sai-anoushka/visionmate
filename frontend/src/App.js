@@ -10,7 +10,7 @@ function App() {
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
 
-  const BACKEND_URL = "https://visionmate-backend.onrender.com/caption/";
+  const BACKEND_URL = "http://192.168.1.92:8000/caption/";
 
 
   useEffect(() => {
@@ -21,10 +21,39 @@ function App() {
     return () => stopCamera();
   }, []);
 
+  useEffect(() => {
+    // Force loading of voices on iOS to avoid speech bug
+    window.speechSynthesis.getVoices();
+  }, []);
+
   const speak = (msg) => {
-    const utterance = new SpeechSynthesisUtterance(msg);
-    speechSynthesis.speak(utterance);
+    const synth = window.speechSynthesis;
+  
+    const speakNow = () => {
+      const utterance = new SpeechSynthesisUtterance(msg);
+      utterance.lang = "en-US";
+      utterance.volume = 1;
+      utterance.rate = 1;
+      utterance.pitch = 1;
+  
+      const voices = synth.getVoices();
+      if (voices.length > 0) {
+        utterance.voice = voices.find(v => v.lang === "en-US") || voices[0];
+      }
+  
+      synth.cancel(); // Cancel any ongoing speech
+      synth.speak(utterance);
+    };
+  
+    // Voices might not be loaded immediately, so wait a bit
+    if (synth.getVoices().length === 0) {
+      synth.onvoiceschanged = () => speakNow();
+    } else {
+      speakNow();
+    }
   };
+
+  
 
   const playSound = (src) => {
     const audio = new Audio(src);
@@ -46,13 +75,17 @@ function App() {
         body: formData,
       });
       const data = await res.json();
-      setCaption(data.caption);
+    setCaption(data.caption);
+
+    setTimeout(() => {
       speak("Caption: " + data.caption);
-      playSound("/ding.mp3");
-    } catch (err) {
-      speak("Failed to generate caption.");
-    } finally {
-      setIsProcessing(false);
+    }, 500);
+
+    playSound("/ding.mp3");
+  } catch (err) {
+    speak("Failed to generate caption.");
+  } finally {
+    setIsProcessing(false);
     }
   };
 
@@ -100,11 +133,21 @@ function App() {
   const handleMobileUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
+      unlockSpeech(); // unlock speech API on iOS
+      speak("Welcome to VisionMate. Please wait while your image is processed.");
       const previewUrl = URL.createObjectURL(file);
       setImagePreview(previewUrl);
       generateCaption(file);
     }
   };
+  
+
+  const unlockSpeech = () => {
+    const utter = new SpeechSynthesisUtterance("");
+    window.speechSynthesis.speak(utter);
+  };
+  
+  
 
   return (
     <div style={styles.wrapper}>
@@ -114,7 +157,7 @@ function App() {
       <div style={styles.card}>
         {isMobile ? (
           <>
-            <label style={{ ...styles.fakeButton }}>
+            <label style={styles.bigCameraButton}>
       📷 Open Camera
       <input
         type="file"
@@ -254,6 +297,25 @@ const styles = {
     cursor: "pointer",
     touchAction: "manipulation",
     textAlign: "center"
+  },
+  bigCameraButton: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    fontSize: "1.5rem",
+    fontWeight: "bold",
+    padding: "20px",
+    backgroundColor: "#007bff",
+    color: "white",
+    borderRadius: "10px",
+    border: "none",
+    width: "100%",
+    height: "200px",
+    cursor: "pointer",
+    margin: "40px auto", // center it and add space above & below
+  textAlign: "center",
+  maxWidth: "90vw",     // prevents it from stretching too far
+  boxSizing: "border-box", // includes padding in size calculation
   },
   
 };
