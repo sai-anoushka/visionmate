@@ -6,54 +6,66 @@ function App() {
   const [cameraActive, setCameraActive] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [speechUnlocked, setSpeechUnlocked] = useState(false);
+  const [waitingForRetap, setWaitingForRetap] = useState(false);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
+  const fileInputRef = useRef(null);
 
-  const BACKEND_URL = "http://192.168.1.92:8000/caption/";
-
+  const BACKEND_URL = "https://visionmate-backend.onrender.com/caption/";
 
   useEffect(() => {
     const mobileCheck = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     setIsMobile(mobileCheck);
-    speak("Welcome to VisionMate.");
-    if (!mobileCheck) startCamera(); // Auto-start on desktop
+
+    if (!mobileCheck) {
+      speak("Welcome to VisionMate.");
+      startCamera();
+    }
+
     return () => stopCamera();
   }, []);
 
-  useEffect(() => {
-    // Force loading of voices on iOS to avoid speech bug
-    window.speechSynthesis.getVoices();
-  }, []);
+  const [readyToCapture, setReadyToCapture] = useState(false);
+
+const handleScreenTap = () => {
+  const unlock = new SpeechSynthesisUtterance(" ");
+  window.speechSynthesis.speak(unlock);
+
+  setTimeout(() => {
+    speak("Tap anywhere to open the camera. Press the volume button to take a picture. Then press the bottom right of the screen to use the photo.");
+    setSpeechUnlocked(true);
+    setReadyToCapture(true); // this enables tap to open camera
+  }, 300);
+};
+
 
   const speak = (msg) => {
     const synth = window.speechSynthesis;
-  
+
     const speakNow = () => {
       const utterance = new SpeechSynthesisUtterance(msg);
       utterance.lang = "en-US";
       utterance.volume = 1;
       utterance.rate = 1;
       utterance.pitch = 1;
-  
+
       const voices = synth.getVoices();
       if (voices.length > 0) {
         utterance.voice = voices.find(v => v.lang === "en-US") || voices[0];
       }
-  
-      synth.cancel(); // Cancel any ongoing speech
+
+      synth.cancel();
       synth.speak(utterance);
     };
-  
-    // Voices might not be loaded immediately, so wait a bit
+
     if (synth.getVoices().length === 0) {
       synth.onvoiceschanged = () => speakNow();
     } else {
       speakNow();
     }
   };
-
-  
 
   const playSound = (src) => {
     const audio = new Audio(src);
@@ -75,17 +87,24 @@ function App() {
         body: formData,
       });
       const data = await res.json();
-    setCaption(data.caption);
+      setCaption(data.caption);
 
-    setTimeout(() => {
-      speak("Caption: " + data.caption);
-    }, 500);
+      setTimeout(() => {
+        speak("Caption: " + data.caption);
 
-    playSound("/ding.mp3");
-  } catch (err) {
-    speak("Failed to generate caption.");
-  } finally {
-    setIsProcessing(false);
+        if (isMobile) {
+          setTimeout(() => {
+            speak("Tap anywhere on the screen to generate caption for another image.");
+            setWaitingForRetap(true);
+          }, 5000);
+        }
+
+        playSound("/ding.mp3");
+      }, 500);
+    } catch (err) {
+      speak("Failed to generate caption.");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -133,57 +152,94 @@ function App() {
   const handleMobileUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      unlockSpeech(); // unlock speech API on iOS
-      speak("Welcome to VisionMate. Please wait while your image is processed.");
+      setWaitingForRetap(false); // reset tap-to-recapture
+      speak("Photo received. Please wait while we generate a caption.");
       const previewUrl = URL.createObjectURL(file);
       setImagePreview(previewUrl);
       generateCaption(file);
     }
   };
-  
-
-  const unlockSpeech = () => {
-    const utter = new SpeechSynthesisUtterance("");
-    window.speechSynthesis.speak(utter);
-  };
-  
-  
 
   return (
     <div style={styles.wrapper}>
-      <h1 style={styles.title}>📸 VisionMate</h1>
-      <p style={styles.subtitle}>AI Image Captioning for Everyone</p>
+      {/* 🔊 Step 1: Unlock speech */}
+{isMobile && !speechUnlocked && (
+  <div style={styles.tapToUnlock} onClick={handleScreenTap} />
+)}
 
-      <div style={styles.card}>
-        {isMobile ? (
-          <>
-            <label style={styles.bigCameraButton}>
-      📷 Open Camera
+{/* 📷 Step 2: Tap anywhere to open camera after speech unlock (initial capture) */}
+{isMobile && speechUnlocked && !imagePreview && !waitingForRetap && (
+  <div
+    style={styles.fullscreenTapToCapture}
+    onClick={() => {
+      fileInputRef.current?.click();
+    }}
+  />
+)}
+
+{/* 🔁 Step 3: After caption, wait for user to tap again to recapture */}
+{isMobile && waitingForRetap && (
+  <div
+    style={styles.fullscreenTapToCapture}
+    onClick={() => {
+      setWaitingForRetap(false);
+      fileInputRef.current?.click();
+    }}
+  />
+)}
+
+      {/* Hidden camera trigger */}
       <input
+        ref={fileInputRef}
         type="file"
         accept="image/*"
         capture="environment"
         onChange={handleMobileUpload}
         style={{ display: "none" }}
       />
-    </label>
-  </>
+
+      <h1 style={styles.title}>📸 VisionMate</h1>
+      <p style={styles.subtitle}>AI Image Captioning for Everyone</p>
+
+      <div style={styles.card}>
+        {isMobile ? (
+          imagePreview ? (
+            <></>
+          ) : (
+            <p style={{ fontStyle: "italic", color: "#777" }}>
+              Tap anywhere to open camera
+            </p>
+          )
         ) : (
           <>
-            {cameraActive && (
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                onClick={captureImage}
-                style={styles.video}
-              />
-            )}
-            <canvas ref={canvasRef} style={{ display: "none" }} />
-            <button onClick={stopCamera} style={{ ...styles.button, backgroundColor: "#ff4d4d" }}>
-              ❌ Close Camera
-            </button>
+            {cameraActive ? (
+  <>
+    <video
+      ref={videoRef}
+      autoPlay
+      playsInline
+      muted
+      style={styles.video}
+      onClick={captureImage}
+    />
+    <canvas ref={canvasRef} style={{ display: "none" }} />
+
+    <button
+      onClick={stopCamera}
+      style={{ ...styles.button, backgroundColor: "#ff4d4d" }}
+    >
+      ❌ Close Camera
+    </button>
+  </>
+) : (
+  <button
+    onClick={startCamera}
+    style={{ ...styles.button, backgroundColor: "#007bff" }}
+  >
+    🎥 Open Camera
+  </button>
+)}
+
           </>
         )}
 
@@ -201,9 +257,7 @@ function App() {
           </div>
         )}
 
-        {caption && (
-          <p style={styles.caption}>📜 Caption: {caption}</p>
-        )}
+        {caption && <p style={styles.caption}>📜 Caption: {caption}</p>}
       </div>
 
       <footer style={styles.footer}>
@@ -283,41 +337,26 @@ const styles = {
     fontSize: "1rem",
     color: "#666",
   },
-  fakeButton: {
-    display: "block",
-    width: "100%",
-    margin: "10px 0",
-    padding: "12px 15px",
-    fontSize: "1rem",
-    fontWeight: "bold",
-    backgroundColor: "#007bff",
-    color: "white",
-    border: "none",
-    borderRadius: "6px",
+  tapToUnlock: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100vw",
+    height: "100vh",
+    backgroundColor: "rgba(255,255,255,0)",
+    zIndex: 9999,
     cursor: "pointer",
-    touchAction: "manipulation",
-    textAlign: "center"
   },
-  bigCameraButton: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    fontSize: "1.5rem",
-    fontWeight: "bold",
-    padding: "20px",
-    backgroundColor: "#007bff",
-    color: "white",
-    borderRadius: "10px",
-    border: "none",
-    width: "100%",
-    height: "200px",
+  fullscreenTapToCapture: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100vw",
+    height: "100vh",
+    zIndex: 9998,
+    backgroundColor: "rgba(255,255,255,0)",
     cursor: "pointer",
-    margin: "40px auto", // center it and add space above & below
-  textAlign: "center",
-  maxWidth: "90vw",     // prevents it from stretching too far
-  boxSizing: "border-box", // includes padding in size calculation
   },
-  
 };
 
 export default App;
