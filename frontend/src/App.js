@@ -53,7 +53,7 @@ const handleScreenTap = () => {
 
       const voices = synth.getVoices();
       if (voices.length > 0) {
-        utterance.voice = voices.find(v => v.lang === "en-US") || voices[0];
+        utterance.voice = voices.find(v => v.lang === "en-US") || voices[3];
       }
 
       synth.cancel();
@@ -116,6 +116,7 @@ const handleScreenTap = () => {
       });
       streamRef.current = stream;
       setCameraActive(true);
+      speak("Tap anywhere to click a picture");
       setTimeout(() => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -163,30 +164,53 @@ const handleScreenTap = () => {
   return (
     <div style={styles.wrapper}>
       {/* 🔊 Step 1: Unlock speech */}
-{isMobile && !speechUnlocked && (
-  <div style={styles.tapToUnlock} onClick={handleScreenTap} />
-)}
-
-{/* 📷 Step 2: Tap anywhere to open camera after speech unlock (initial capture) */}
-{isMobile && speechUnlocked && !imagePreview && !waitingForRetap && (
+      {isMobile && !speechUnlocked && (
+        <div style={styles.tapToUnlock} onClick={handleScreenTap} />
+      )}
+  
+      {/* 📷 Step 2: Tap anywhere to open camera after speech unlock (initial capture) */}
+      {isMobile && speechUnlocked && !imagePreview && !waitingForRetap && (
+        <div
+          style={styles.fullscreenTapToCapture}
+          onClick={() => {
+            fileInputRef.current?.click();
+          }}
+        />
+      )}
+  
+      {/* 🔁 Tap anywhere to capture for LAPTOP when camera is active */}
+      {!isMobile && cameraActive && !imagePreview && (
+        <div
+          style={styles.fullscreenTapToCapture}
+          onClick={captureImage}
+        />
+      )}
+  
+      {/* 🔁 After showing preview, tap anywhere to capture again (for LAPTOP) */}
+      {!isMobile && imagePreview && (
   <div
     style={styles.fullscreenTapToCapture}
     onClick={() => {
-      fileInputRef.current?.click();
+      setImagePreview(null);
+      setCaption("");
+      startCamera();
+      speak("Tap anywhere to click a picture");
     }}
   />
 )}
 
-{/* 🔁 Step 3: After caption, wait for user to tap again to recapture */}
-{isMobile && waitingForRetap && (
-  <div
-    style={styles.fullscreenTapToCapture}
-    onClick={() => {
-      setWaitingForRetap(false);
-      fileInputRef.current?.click();
-    }}
-  />
-)}
+  
+      {/* 🔁 Step 3: After caption, wait for user to tap again to recapture on MOBILE */}
+      {isMobile && waitingForRetap && (
+        <div
+          style={styles.fullscreenTapToCapture}
+          onClick={() => {
+            setWaitingForRetap(false);
+            fileInputRef.current?.click();
+          }}
+        />
+      )}
+  
 
       {/* Hidden camera trigger */}
       <input
@@ -214,15 +238,28 @@ const handleScreenTap = () => {
           <>
             {cameraActive ? (
   <>
+    {!imagePreview ? (
+  <>
     <video
       ref={videoRef}
       autoPlay
       playsInline
       muted
       style={styles.video}
-      onClick={captureImage}
     />
     <canvas ref={canvasRef} style={{ display: "none" }} />
+  </>
+) : (
+  <img
+    src={imagePreview}
+    alt="Captured"
+    style={{
+      ...styles.video,
+      boxShadow: isProcessing ? "0 0 15px 5px #007bff" : "none"
+    }}
+  />
+)}
+
 
     <button
       onClick={stopCamera}
@@ -243,19 +280,21 @@ const handleScreenTap = () => {
           </>
         )}
 
-        {imagePreview && (
-          <div style={{ marginTop: "20px" }}>
-            <h4 style={styles.subHeader}>📌 Preview:</h4>
-            <img
-              src={imagePreview}
-              alt="Captured"
-              style={{
-                ...styles.image,
-                boxShadow: isProcessing ? "0 0 15px 5px #007bff" : "none"
-              }}
-            />
-          </div>
-        )}
+        {/* 📱 Mobile-only preview block */}
+{isMobile && imagePreview && (
+  <div style={{ marginTop: "20px" }}>
+    <h4 style={styles.subHeader}>📌 Preview:</h4>
+    <img
+      src={imagePreview}
+      alt="Captured"
+      style={{
+        ...styles.image,
+        boxShadow: isProcessing ? "0 0 15px 5px #007bff" : "none"
+      }}
+    />
+  </div>
+)}
+
 
         {caption && <p style={styles.caption}>📜 Caption: {caption}</p>}
       </div>
