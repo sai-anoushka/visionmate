@@ -180,10 +180,15 @@ const handleScreenTap = () => {
   
       {/* 🔁 Tap anywhere to capture for LAPTOP when camera is active */}
       {!isMobile && cameraActive && !imagePreview && (
+        <>
+        <p style={{ fontStyle: "italic", color: "#777" }}>
+          Tap anywhere to capture an image
+        </p>
         <div
           style={styles.fullscreenTapToCapture}
           onClick={captureImage}
         />
+        </>
       )}
   
       {/* 🔁 After showing preview, tap anywhere to capture again (for LAPTOP) */}
@@ -261,12 +266,6 @@ const handleScreenTap = () => {
 )}
 
 
-    <button
-      onClick={stopCamera}
-      style={{ ...styles.button, backgroundColor: "#ff4d4d" }}
-    >
-      ❌ Close Camera
-    </button>
   </>
 ) : (
   <button
