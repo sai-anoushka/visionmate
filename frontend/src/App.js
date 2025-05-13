@@ -13,7 +13,7 @@ function App() {
   const streamRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const BACKEND_URL = "https://visionmate-backend.onrender.com/caption/";
+  const BACKEND_URL = "https://turkey-whole-poorly.ngrok-free.app/caption/";
 
   useEffect(() => {
     const mobileCheck = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -85,6 +85,9 @@ const handleScreenTap = () => {
       const res = await fetch(BACKEND_URL, {
         method: "POST",
         body: formData,
+        headers: {
+          "ngrok-skip-browser-warning": "true"
+        }
       });
       const data = await res.json();
       setCaption(data.caption);
